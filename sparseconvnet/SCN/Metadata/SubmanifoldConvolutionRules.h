@@ -31,7 +31,7 @@ double SubmanifoldConvolution_SgToRules(SparseGrid<dimension> &grid,
   double countActiveInputs = 0;
   const Int threadCount = 4;
   std::vector<std::thread> threads;
-  int activeInputs[threadCount] = {0};
+  std::array<int, threadCount> activeInputs = {};
   std::vector<RuleBook> rulebooks;
   for (Int t = 0; t < threadCount; ++t) {
     rulebooks.push_back(RuleBook(rules.size()));
@@ -39,7 +39,9 @@ double SubmanifoldConvolution_SgToRules(SparseGrid<dimension> &grid,
 
   auto func = [&](const int order) {
     auto outputIter = grid.mp.begin();
+    auto &rb = rulebooks[order];
     int rem = grid.mp.size();
+    int aciveInputCount = 0;
 
     if (rem > order) {
       std::advance(outputIter, order);
@@ -54,15 +56,14 @@ double SubmanifoldConvolution_SgToRules(SparseGrid<dimension> &grid,
         for (auto inputPoint : inRegion) {
           auto inputIter = grid.mp.find(inputPoint);
           if (inputIter != grid.mp.end()) {
-            activeInputs[order]++;
-            rulebooks[order][rulesOffset].push_back(inputIter->second +
-                                                    grid.ctr);
-            rulebooks[order][rulesOffset].push_back(outputIter->second +
-                                                    grid.ctr);
+            aciveInputCount++;
+            rb[rulesOffset].push_back(inputIter->second + grid.ctr);
+            rb[rulesOffset].push_back(outputIter->second + grid.ctr);
           }
           rulesOffset++;
         }
       }
+      activeInputs[order] = aciveInputCount;
     }
   };
 
